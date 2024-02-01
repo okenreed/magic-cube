@@ -115,12 +115,12 @@ cw_rotations = {
 
 # dict to go from (0-5) colors to RGB for display
 color_dict = {
-    0: (255, 255, 0), # YELLOW
+    0: (255, 255, 0),   # YELLOW
     1: (255, 0, 0),     # RED
     2: (0, 0, 255),     # BLUE
     3: (255, 102, 0),   # ORANGE
     4: (0, 255, 0),     # GREEN
-    5: (255, 255, 255)    # WHITE
+    5: (255, 255, 255)  # WHITE
 }
 
 # COLORS THAT ARE COOL
@@ -138,7 +138,7 @@ ORANGE = (255, 102, 0)
 
 # SCREEN BUSINESS
 RESOLUTION = (1920, 1080)
-TRUE_CENTER = np.array([RESOLUTION[0]/2, RESOLUTION[1]/2, 1000])
+CENTER_3D = np.array([RESOLUTION[0]/2, RESOLUTION[1]/2, 1000])
 
 def rotation_x(alpha):
     return np.array([
@@ -182,14 +182,14 @@ class Rubiks:
                 self.piece_arr[idx] = i
 
         default_vertices = np.array([
-            [-1, 1, 1],     #0
-            [1, 1, 1],      #1
-            [1, 1, -1],       #2
-            [-1, 1, -1],      #3
-            [-1, -1, 1],    #4 
-            [1, -1, 1],     #5
-            [1, -1, -1],      #6
-            [-1, -1, -1]      #7
+            [-1, 1, -1],    #0
+            [1, 1, -1],     #1
+            [1, -1, -1],    #2
+            [-1, -1, -1],   #3
+            [-1, 1, 1],     #4 
+            [1, 1, 1],      #5
+            [1, -1, 1],     #6
+            [-1, -1, 1]     #7
         ])
         self.length = length
         self.center = center
@@ -199,32 +199,32 @@ class Rubiks:
         self.set_gamma(gamma)        
 
     def get_2d_projection(self):
-        projection = []
+        projected_vertices = []
         for vertex in self.vertices:
             projected_vertex = vertex.copy()
-            projected_vertex[:2] -= TRUE_CENTER[:2]
+            projected_vertex[:2] -= CENTER_3D[:2]
             projected_vertex = 1000 * projected_vertex / vertex[2]
-            projected_vertex[:2] += TRUE_CENTER[:2]
-            projection.append(projected_vertex)
-        return projection
+            projected_vertex[:2] += CENTER_3D[:2]
+            projected_vertices.append(projected_vertex)
+        return projected_vertices
 
     def set_alpha(self, alpha):
         self.alpha = alpha
-        self.vertices -= TRUE_CENTER
+        self.vertices -= CENTER_3D
         self.vertices = np.transpose(np.matmul(rotation_x(self.alpha), np.transpose(self.vertices)))
-        self.vertices += TRUE_CENTER
+        self.vertices += CENTER_3D
 
     def set_beta(self, beta):
         self.beta = beta
-        self.vertices -= TRUE_CENTER
+        self.vertices -= CENTER_3D
         self.vertices = np.transpose(np.matmul(rotation_y(self.beta), np.transpose(self.vertices)))
-        self.vertices += TRUE_CENTER
+        self.vertices += CENTER_3D
 
     def set_gamma(self, gamma):
         self.gamma = gamma
-        self.vertices -= TRUE_CENTER
+        self.vertices -= CENTER_3D
         self.vertices = np.transpose(np.matmul(rotation_z(self.gamma), np.transpose(self.vertices)))
-        self.vertices += TRUE_CENTER
+        self.vertices += CENTER_3D
 
     def cw_face_rot(self, face_num):
         piece_dup = self.piece_arr.copy()
@@ -266,85 +266,81 @@ class Rubiks:
     def print(self):
         print(self.piece_arr)
 
-    def face_draw(self, starting_x, starting_y, color_arr, side_len, edges_on):
+    def face_draw(self, starting_coord, color_arr, side_len, edges_on):
         for i in range(3):
+            y_offset = i * side_len
             for j in range(3):
                 color_idx = i * 3 + j
                 color = color_dict[color_arr[color_idx]]
                 x_offest = j * side_len
-                y_offset = i * side_len
-                x1 = (starting_x + x_offest, starting_y + y_offset)
-                x2 = (x1[0] + side_len, x1[1])
-                x3 = (x1[0] + side_len, x1[1] + side_len)
-                x4 = (x1[0], x1[1] + side_len)
-                pygame.draw.polygon(screen, color, (x1, x2, x3, x4))
+                coord_1 = (starting_coord[0] + x_offest, starting_coord[1] + y_offset)
+                coord_2 = (coord_1[0] + side_len, coord_1[1])
+                coord_3 = (coord_1[0] + side_len, coord_1[1] + side_len)
+                coord_4 = (coord_1[0], coord_1[1] + side_len)
+                pygame.draw.polygon(screen, color, (coord_1, coord_2, coord_3, coord_4))
                 if edges_on:
-                    pygame.draw.polygon(screen, BLACK, (x1, x2, x3, x4), 4)
+                    pygame.draw.polygon(screen, BLACK, (coord_1, coord_2, coord_3, coord_4), 4)
 
-    def draw(self, edges_on):
+    def draw_2d(self, edges_on, center):
         side_len = 50
-        starting_x = 200
-        starting_y = 200
+        starting_x = center[0] - 4.5 * side_len
+        starting_y = center[1] - 6 * side_len
 
         # SIDE 0
         color_arr = self.piece_arr[0:9]
-        self.face_draw(starting_x, starting_y, color_arr, 50, edges_on)
+        self.face_draw((starting_x, starting_y), color_arr, side_len, edges_on)
 
         # SIDE 1
         color_arr = self.piece_arr[9:18]
         starting_x += side_len * 3
-        self.face_draw(starting_x, starting_y, color_arr, 50, edges_on)
+        self.face_draw((starting_x, starting_y), color_arr, side_len, edges_on)
 
         # SIDE 2
         color_arr = self.piece_arr[18:27]
         starting_y += side_len * 3
-        self.face_draw(starting_x, starting_y, color_arr, 50, edges_on)
+        self.face_draw((starting_x, starting_y), color_arr, side_len, edges_on)
 
         # SIDE 3
         color_arr = self.piece_arr[27:36]
         starting_y += side_len * 3
-        self.face_draw(starting_x, starting_y, color_arr, 50, edges_on)
+        self.face_draw((starting_x, starting_y), color_arr, side_len, edges_on)
 
         # SIDE 4
         color_arr = self.piece_arr[36:45]
         starting_y += side_len * 3
-        self.face_draw(starting_x, starting_y, color_arr, 50, edges_on)
+        self.face_draw((starting_x, starting_y), color_arr, side_len, edges_on)
 
         # SIDE 5
         color_arr = self.piece_arr[45:54]
         starting_x += side_len * 3
-        self.face_draw(starting_x, starting_y, color_arr, 50, edges_on)        
+        self.face_draw((starting_x, starting_y), color_arr, side_len, edges_on)        
+
+    def draw_3d(self, edges_on=False):
+        points = self.get_2d_projection()
+        front_vertex_index = np.argmin(self.vertices[:, 2])
+
+        faces_to_render = []
+        for i, face in enumerate(FACES):
+            if front_vertex_index in face:
+                verts = []
+                for j in face:
+                    verts.append(self.vertices[j])
+                verts = np.array(verts)
+                idx = np.argmax(verts[:, 2])
+                val = verts[idx][2]
+                faces_to_render.append((i, val))
 
 
+        sorted_faces_by_z = sorted(faces_to_render, key=lambda x: x[1], reverse=True)
+        sorted_faces = [idx for idx, _ in sorted_faces_by_z]
 
-
-
-    # def draw(self, edges_on=False):
-    #     points = self.get_2d_projection()
-    #     front_vertex_index = np.argmin(self.vertices[:, 2])
-
-    #     faces_to_render = []
-    #     for i, face in enumerate(FACES):
-    #         if front_vertex_index in face:
-    #             verts = []
-    #             for j in face:
-    #                 verts.append(self.vertices[j])
-    #             verts = np.array(verts)
-    #             idx = np.argmax(verts[:, 2])
-    #             val = verts[idx][2]
-    #             faces_to_render.append((i, val))
-
-
-    #     sorted_faces_by_z = sorted(faces_to_render, key=lambda x: x[1], reverse=True)
-    #     sorted_faces = [idx for idx, _ in sorted_faces_by_z]
-
-    #     for i in sorted_faces:
-    #         face = FACES[i]
-    #         for j in range(2):
-    #             for k in range(2):
-    #                 pygame.draw.polygon(screen, color_dict[i], (points[face[0]][:2], points[face[1]][:2], points[face[2]][:2], points[face[3]][:2]))
-    #                 if edges_on:
-    #                     pygame.draw.polygon(screen, BLACK, (points[face[0]][:2], points[face[1]][:2], points[face[2]][:2], points[face[3]][:2]), 4)
+        for i in sorted_faces:
+            face = FACES[i]
+            for j in range(2):
+                for k in range(2):
+                    pygame.draw.polygon(screen, color_dict[i], (points[face[0]][:2], points[face[1]][:2], points[face[2]][:2], points[face[3]][:2]))
+                    if edges_on:
+                        pygame.draw.polygon(screen, BLACK, (points[face[0]][:2], points[face[1]][:2], points[face[2]][:2], points[face[3]][:2]), 4)
 
 
 if __name__ == "__main__":
@@ -361,8 +357,10 @@ if __name__ == "__main__":
     background_color = LILAC
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode(RESOLUTION)
-    cube_center = TRUE_CENTER
-    
+    cube_center = CENTER_3D
+    flat = True
+
+
     cube = Rubiks(length=length, center=cube_center, alpha=alpha, beta=beta, gamma=gamma, size=3)
 
     # main loop
@@ -370,7 +368,10 @@ if __name__ == "__main__":
         clock.tick(fps)
         screen.fill(background_color)
 
-        cube.draw(edges_on=edges_on)
+        if flat:
+            cube.draw_2d(edges_on=edges_on, center=cube_center)
+        else:
+            cube.draw_3d(edges_on=edges_on)
 
         # event handling
         for event in pygame.event.get():
@@ -398,6 +399,10 @@ if __name__ == "__main__":
                     cube.make_move('D')
                 if event.key == pygame.K_p:
                     cube.reset()
+                if event.key == pygame.K_2:
+                    flat = True
+                if event.key == pygame.K_3:
+                    flat = False
 
             if event.type == pygame.mouse.get_pressed(3):
                 print(pygame.mouse.get_rel())
