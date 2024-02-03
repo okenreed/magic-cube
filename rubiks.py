@@ -348,7 +348,7 @@ if __name__ == "__main__":
     pygame.display.set_caption("poopy cube 2.0")
 
     alpha, beta, gamma = -0.01, -0.02, 0
-    length = 100
+    length = 200
     fps = 60
     cube_color = RED
     pause = False
@@ -362,6 +362,7 @@ if __name__ == "__main__":
     flat = True
     dragging = False
     start_pos = (0, 0)
+    debug = False
 
     cube = Rubiks(length=length, center=cube_center, alpha=alpha, beta=beta, gamma=gamma, size=3)
 
@@ -410,6 +411,11 @@ if __name__ == "__main__":
                         auto_rotate = False
                     else:
                         auto_rotate = True
+                if event.key == pygame.K_m:
+                    if debug:
+                        debug = False
+                    else:
+                        debug = True
         
         mouse_buttons = pygame.mouse.get_pressed()
 
@@ -421,8 +427,11 @@ if __name__ == "__main__":
                 end_pos = pygame.mouse.get_pos()
                 dx = end_pos[0] - start_pos[0]
                 dy = end_pos[1] - start_pos[1]
-                # Action here
-                print(f'Mouse moved by: {dx}, {dy}')
+                # adjust cube angle based on mouse movement
+                cube.set_alpha(dy/100)
+                cube.set_beta(-dx/100)
+                if debug:
+                    print(f'Mouse moved by: {dx}, {dy}')
 
                 start_pos = end_pos
         else:
