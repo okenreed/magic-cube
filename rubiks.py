@@ -352,6 +352,7 @@ if __name__ == "__main__":
     fps = 60
     cube_color = RED
     pause = False
+    auto_rotate = False
     done = False
     edges_on = True
     background_color = LILAC
@@ -359,7 +360,8 @@ if __name__ == "__main__":
     screen = pygame.display.set_mode(RESOLUTION)
     cube_center = CENTER_3D
     flat = True
-
+    dragging = False
+    start_pos = (0, 0)
 
     cube = Rubiks(length=length, center=cube_center, alpha=alpha, beta=beta, gamma=gamma, size=3)
 
@@ -403,12 +405,31 @@ if __name__ == "__main__":
                     flat = True
                 if event.key == pygame.K_3:
                     flat = False
+                if event.key == pygame.K_a:
+                    if auto_rotate:
+                        auto_rotate = False
+                    else:
+                        auto_rotate = True
+        
+        mouse_buttons = pygame.mouse.get_pressed()
 
-            if event.type == pygame.mouse.get_pressed(3):
-                print(pygame.mouse.get_rel())
+        if mouse_buttons[0]:
+            if not dragging:
+                dragging = True
+                start_pos = pygame.mouse.get_pos()
+            else:
+                end_pos = pygame.mouse.get_pos()
+                dx = end_pos[0] - start_pos[0]
+                dy = end_pos[1] - start_pos[1]
+                # Action here
+                print(f'Mouse moved by: {dx}, {dy}')
+
+                start_pos = end_pos
+        else:
+            dragging = False
 
         # pause action on screen
-        if not pause:
+        if auto_rotate:
             cube.set_alpha(alpha)
             cube.set_beta(beta)
             cube.set_gamma(gamma)
