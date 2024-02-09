@@ -175,8 +175,7 @@ def get_2d_projection(vertex):
     projected_vertex[:2] -= CENTER_3D[:2]
     projected_vertex = 1000 * projected_vertex / vertex[2]
     projected_vertex[:2] += CENTER_3D[:2]
-
-    return projected_vertex
+    return projected_vertex[:2]
 
 class Rubiks:
     def __init__(self, center=np.array([0, 0, 0]), length=1, size=3, alpha=0, beta=0, gamma=0):
@@ -190,14 +189,14 @@ class Rubiks:
                 self.piece_arr[idx] = i
 
         default_vertices = np.array([
-            [-1, 1, -1],    #0
-            [1, 1, -1],     #1
-            [1, -1, -1],    #2
-            [-1, -1, -1],   #3
-            [-1, 1, 1],     #4 
-            [1, 1, 1],      #5
-            [1, -1, 1],     #6
-            [-1, -1, 1]     #7
+            [-1, 1, 1],    #0
+            [1, 1, 1],     #1
+            [1, -1, 1],    #2
+            [-1, -1, 1],   #3
+            [-1, 1, -1],     #4 
+            [1, 1, -1],      #5
+            [1, -1, -1],     #6
+            [-1, -1, -1]     #7
         ])
         self.length = length
         self.center = center
@@ -230,6 +229,7 @@ class Rubiks:
             start = face_num * 9 + i
             end = face_num * 9 + cw_rotations[i]
             piece_dup[end] = self.piece_arr[start]
+        return piece_dup
         self.piece_arr = piece_dup
 
     def ccw_face_rot(self, face_num):
@@ -238,6 +238,7 @@ class Rubiks:
             start = face_num * 9 + cw_rotations[i]
             end = face_num * 9 + i
             piece_dup[end] = self.piece_arr[start]
+        return piece_dup
         self.piece_arr = piece_dup
 
     def make_move(self, move):
@@ -245,11 +246,11 @@ class Rubiks:
         piece_dup = self.piece_arr.copy()
 
         if "'" in move:
-            self.ccw_face_rot(face_num=face)
+            piece_dup = self.ccw_face_rot(face_num=face)
             for i in move_dict:
                 piece_dup[i] = self.piece_arr[move_dict[i]]
         else:
-            self.cw_face_rot(face_num=face)
+            piece_dup = self.cw_face_rot(face_num=face)
             for i in move_dict:
                 piece_dup[move_dict[i]] = self.piece_arr[i]
 
@@ -264,7 +265,7 @@ class Rubiks:
     def print(self):
         print(self.piece_arr)
 
-    def face_draw(self, starting_coord, color_arr, side_len, edges_on):
+    def face_draw_2d(self, starting_coord, color_arr, side_len, edges_on):
         for i in range(3):
             y_offset = i * side_len
             for j in range(3):
@@ -286,32 +287,32 @@ class Rubiks:
 
         # SIDE 0
         color_arr = self.piece_arr[0:9]
-        self.face_draw((starting_x, starting_y), color_arr, side_len, edges_on)
+        self.face_draw_2d((starting_x, starting_y), color_arr, side_len, edges_on)
 
         # SIDE 1
         color_arr = self.piece_arr[9:18]
         starting_x += side_len * 3
-        self.face_draw((starting_x, starting_y), color_arr, side_len, edges_on)
+        self.face_draw_2d((starting_x, starting_y), color_arr, side_len, edges_on)
 
         # SIDE 2
         color_arr = self.piece_arr[18:27]
         starting_y += side_len * 3
-        self.face_draw((starting_x, starting_y), color_arr, side_len, edges_on)
+        self.face_draw_2d((starting_x, starting_y), color_arr, side_len, edges_on)
 
         # SIDE 3
         color_arr = self.piece_arr[27:36]
         starting_y += side_len * 3
-        self.face_draw((starting_x, starting_y), color_arr, side_len, edges_on)
+        self.face_draw_2d((starting_x, starting_y), color_arr, side_len, edges_on)
 
         # SIDE 4
         color_arr = self.piece_arr[36:45]
         starting_y += side_len * 3
-        self.face_draw((starting_x, starting_y), color_arr, side_len, edges_on)
+        self.face_draw_2d((starting_x, starting_y), color_arr, side_len, edges_on)
 
         # SIDE 5
         color_arr = self.piece_arr[45:54]
         starting_x += side_len * 3
-        self.face_draw((starting_x, starting_y), color_arr, side_len, edges_on)        
+        self.face_draw_2d((starting_x, starting_y), color_arr, side_len, edges_on)        
 
     def draw_3d(self, edges_on=False):
         # get front most vertex
@@ -333,18 +334,63 @@ class Rubiks:
         sorted_faces_by_z = sorted(faces_to_render, key=lambda x: x[1], reverse=True)
         sorted_faces = [idx for idx, _ in sorted_faces_by_z]
 
-        # get 2D projection of vertices
-        points = []
-        for vertex in self.vertices:
-            point = get_2d_projection(vertex)
-            points.append(point)
-
         for i in sorted_faces:
             face = FACES[i]
-            pygame.draw.polygon(screen, color_dict[i], (points[face[0]][:2], points[face[1]][:2], points[face[2]][:2], points[face[3]][:2]))
-            if edges_on:
-                pygame.draw.polygon(screen, BLACK, (points[face[0]][:2], points[face[1]][:2], points[face[2]][:2], points[face[3]][:2]), 4)
+            # get vertexs in face
+            a, b, c, d = self.vertices[face[0]], self.vertices[face[1]], self.vertices[face[2]], self.vertices[face[3]]
+            ab_diff = (b - a) / 3
+            ac_diff = (c - a) / 3
+            ad_diff = (d - a) / 3
+            bd_diff = (d - b) / 3
+            bc_diff = (c - b) / 3
+            dc_diff = (c - d) / 3
 
+            ab = a + ab_diff
+            ab2 = a + 2 * ab_diff
+            ad = a + ad_diff
+            ac = a + ac_diff
+            bd = b + bd_diff
+            bc = b + bc_diff
+            ad2 = a + 2 * ad_diff
+            bd2 = b + 2 * bd_diff
+            ac2 = a + 2 * ac_diff
+            bc2 = b + 2 * bc_diff
+            dc = d + dc_diff
+            dc2 = d + 2 * dc_diff
+
+            subfaces = []
+            subfaces.append((a, ab, ac, ad))
+            subfaces.append((ab, ab2, bd, ac))
+            subfaces.append((ab2, b, bc, bd))
+            subfaces.append((ad, ac, bd2, ad2))
+            subfaces.append((ac, bd, ac2, bd2))
+            subfaces.append((bd, bc, bc2, ac2))
+            subfaces.append((ad2, bd2, dc, d))
+            subfaces.append((bd2, ac2, dc2, dc))
+            subfaces.append((ac2,  bc2, c, dc2))
+
+            subface_projections = []
+            color_idx = i * 9
+            for subface in subfaces:
+                projections = []
+                for vertex in subface:
+                    projection = get_2d_projection(vertex)
+                    projections.append(projection)
+                subface_projections.append((projections[0], projections[1], projections[2], projections[3]))
+
+            for subface in subface_projections:
+                pygame.draw.polygon(screen, color_dict[self.piece_arr[color_idx]], subface)
+                if edges_on:
+                    pygame.draw.polygon(screen, BLACK, subface, 4)
+                    color_idx += 1
+
+def toggle(boolean):
+    if boolean:
+        boolean = False
+    else:
+        boolean = True
+
+    return boolean
 
 if __name__ == "__main__":
     pygame.init()
@@ -354,7 +400,6 @@ if __name__ == "__main__":
     ar_alpha, ar_beta, ar_gamma = -0.01, -0.02, 0
     length = 200
     fps = 60
-    cube_color = RED
     pause = False
     auto_rotate = False
     done = False
@@ -380,46 +425,55 @@ if __name__ == "__main__":
         else:
             cube.draw_3d(edges_on=edges_on)
 
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_ESCAPE]:
+            done = True
+        if keys[pygame.K_SPACE]:
+            pause = toggle(pause)
+        if keys[pygame.K_a]:
+            auto_rotate = toggle(auto_rotate)
+        if keys[pygame.K_e]:
+            edges_on = toggle(edges_on)
+        if keys[pygame.K_m]:
+            debug = toggle(debug)
+        if keys[pygame.K_2]:
+            flat = True
+        if keys[pygame.K_3]:
+            flat = False            
+        if keys[pygame.K_l]:
+            if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
+                cube.make_move("L'")
+            else:
+                cube.make_move('L')
+        if keys[pygame.K_r]:
+            if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
+                cube.make_move("R'")
+            else:
+                cube.make_move('R')
+        if keys[pygame.K_f]:
+            if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
+                cube.make_move("F'")
+            else:
+                cube.make_move('F')
+        if keys[pygame.K_b]:
+            if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
+                cube.make_move("B'")
+            else:
+                cube.make_move('B')
+        if keys[pygame.K_u]:
+            if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
+                cube.make_move("U'")
+            else:
+                cube.make_move('U')
+        if keys[pygame.K_d]:
+            if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
+                cube.make_move("D'")
+            else:
+                cube.make_move('D')
         # event handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    done = True
-                if event.key == pygame.K_SPACE:
-                    if pause:
-                        pause = False
-                    else:
-                        pause = True
-                if event.key == pygame.K_l:
-                    cube.make_move('L')
-                if event.key == pygame.K_r:
-                    cube.make_move('R')
-                if event.key == pygame.K_f:
-                    cube.make_move('F')
-                if event.key == pygame.K_b:
-                    cube.make_move('B')
-                if event.key == pygame.K_u:
-                    cube.make_move('U')
-                if event.key == pygame.K_d:
-                    cube.make_move('D')
-                if event.key == pygame.K_p:
-                    cube.reset()
-                if event.key == pygame.K_2:
-                    flat = True
-                if event.key == pygame.K_3:
-                    flat = False
-                if event.key == pygame.K_a:
-                    if auto_rotate:
-                        auto_rotate = False
-                    else:
-                        auto_rotate = True
-                if event.key == pygame.K_m:
-                    if debug:
-                        debug = False
-                    else:
-                        debug = True
         
         mouse_buttons = pygame.mouse.get_pressed()
 
