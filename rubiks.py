@@ -170,6 +170,14 @@ FACES = [
     (4, 7, 6, 5)    # WHITE
     ]
 
+def get_2d_projection(vertex):
+    projected_vertex = vertex.copy()
+    projected_vertex[:2] -= CENTER_3D[:2]
+    projected_vertex = 1000 * projected_vertex / vertex[2]
+    projected_vertex[:2] += CENTER_3D[:2]
+
+    return projected_vertex
+
 class Rubiks:
     def __init__(self, center=np.array([0, 0, 0]), length=1, size=3, alpha=0, beta=0, gamma=0):
 
@@ -197,16 +205,6 @@ class Rubiks:
         self.set_alpha(alpha)
         self.set_beta(beta)
         self.set_gamma(gamma)        
-
-    def get_2d_projection(self):
-        projected_vertices = []
-        for vertex in self.vertices:
-            projected_vertex = vertex.copy()
-            projected_vertex[:2] -= CENTER_3D[:2]
-            projected_vertex = 1000 * projected_vertex / vertex[2]
-            projected_vertex[:2] += CENTER_3D[:2]
-            projected_vertices.append(projected_vertex)
-        return projected_vertices
 
     def set_alpha(self, alpha):
         self.alpha = alpha
@@ -316,9 +314,10 @@ class Rubiks:
         self.face_draw((starting_x, starting_y), color_arr, side_len, edges_on)        
 
     def draw_3d(self, edges_on=False):
-        points = self.get_2d_projection()
+        # get front most vertex
         front_vertex_index = np.argmin(self.vertices[:, 2])
 
+        # get 3 faces that will be rendered
         faces_to_render = []
         for i, face in enumerate(FACES):
             if front_vertex_index in face:
@@ -330,17 +329,21 @@ class Rubiks:
                 val = verts[idx][2]
                 faces_to_render.append((i, val))
 
-
+        # put faces in render order
         sorted_faces_by_z = sorted(faces_to_render, key=lambda x: x[1], reverse=True)
         sorted_faces = [idx for idx, _ in sorted_faces_by_z]
 
+        # get 2D projection of vertices
+        points = []
+        for vertex in self.vertices:
+            point = get_2d_projection(vertex)
+            points.append(point)
+
         for i in sorted_faces:
             face = FACES[i]
-            for j in range(2):
-                for k in range(2):
-                    pygame.draw.polygon(screen, color_dict[i], (points[face[0]][:2], points[face[1]][:2], points[face[2]][:2], points[face[3]][:2]))
-                    if edges_on:
-                        pygame.draw.polygon(screen, BLACK, (points[face[0]][:2], points[face[1]][:2], points[face[2]][:2], points[face[3]][:2]), 4)
+            pygame.draw.polygon(screen, color_dict[i], (points[face[0]][:2], points[face[1]][:2], points[face[2]][:2], points[face[3]][:2]))
+            if edges_on:
+                pygame.draw.polygon(screen, BLACK, (points[face[0]][:2], points[face[1]][:2], points[face[2]][:2], points[face[3]][:2]), 4)
 
 
 if __name__ == "__main__":
