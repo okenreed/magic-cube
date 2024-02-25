@@ -382,15 +382,13 @@ class Rubiks:
                 pygame.draw.polygon(screen, color_dict[self.piece_arr[color_idx]], subface)
                 if edges_on:
                     pygame.draw.polygon(screen, BLACK, subface, 4)
-                    color_idx += 1
+                color_idx += 1
 
 def toggle(boolean):
     if boolean:
-        boolean = False
+        return False
     else:
-        boolean = True
-
-    return boolean
+        return True
 
 if __name__ == "__main__":
     pygame.init()
@@ -438,6 +436,8 @@ if __name__ == "__main__":
             debug = toggle(debug)
         if keys[pygame.K_2]:
             flat = True
+        if keys[pygame.K_p]:
+            cube.reset()
         if keys[pygame.K_3]:
             flat = False            
         if keys[pygame.K_l]:
